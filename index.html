@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitor Clínico | Health Dashboard PRO</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Modal de Registro de Paciente -->
+  <div class="modal-overlay" id="patient-modal">
+    <div class="modal-content">
+      <h2>Registro de Nueva Medición</h2>
+      <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.5rem; text-align: center;">
+        Inicia la sesión vinculando los datos vitales a un paciente.
+      </p>
+      
+      <form id="patient-form">
+        <div class="form-group">
+          <label for="d-name">Nombre del Médico</label>
+          <input type="text" id="d-name" placeholder="Ej. Dr. Juan Pérez" required>
+        </div>
+        <div class="form-group">
+          <label for="p-name">Nombre del Paciente</label>
+          <input type="text" id="p-name" placeholder="Ej. María López" required>
+        </div>
+        <div class="form-group">
+          <label for="p-age">Edad</label>
+          <input type="number" id="p-age" placeholder="Ej. 45" required>
+        </div>
+        <div class="form-group">
+          <label for="p-id">Clave de Vinculación (Obligatorio)</label>
+          <input type="text" id="p-id" placeholder="Ej. CDMX-01" required>
+        </div>
+        
+        <button type="submit" class="btn-primary">Vincular y Comenzar Monitoreo</button>
+      </form>
+    </div>
+  </div>
+
+  <header>
+    <div class="brand-section">
+      <div class="logo">✦</div>
+      <div class="title-group">
+        <h1>Health Dashboard PRO</h1>
+        <p>Monitoreo Clínico Continuo</p>
+      </div>
+    </div>
+    
+    <div class="device-status" style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
+      <!-- Pulsera -->
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <div class="device-info" style="text-align: right;">
+          <strong>Pulsera Polar</strong>
+          <span id="device-connection-state">Desconectado</span>
+        </div>
+        <div class="status-indicator" id="status-indicator"></div>
+        <button class="connect-btn" id="btn-connect">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 7l10 10M17 7L7 17"/>
+          </svg>
+          Pulsera
+        </button>
+      </div>
+      
+      <div style="width: 1px; height: 32px; background-color: var(--border-light);"></div>
+
+      <!-- Oximetro -->
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <div class="device-info" style="text-align: right;">
+          <strong>BerryMed BM1000C</strong>
+          <span id="oxi-connection-state-header">Desconectado</span>
+        </div>
+        <div class="status-indicator" id="oxi-status-indicator"></div>
+        <button class="connect-btn" id="btn-connect-oxi">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 7l10 10M17 7L7 17"/>
+          </svg>
+          Oxímetro
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="dashboard-container">
+    
+    <aside class="sidebar">
+      <!-- Tarjeta del Paciente (Oculta hasta registrar) -->
+      <div class="patient-card" id="patient-info-card">
+        <h3 class="section-title" style="margin-bottom: 1rem; font-size: 1rem;">Paciente en Monitoreo</h3>
+        <div class="patient-header">
+          <div class="patient-avatar" id="avatar-initial">J</div>
+          <div>
+            <div id="display-d-name" style="font-size: 0.8rem; font-weight: 600; color: #0ea5e9; margin-bottom: 2px;"></div>
+            <h4 id="display-p-name" style="font-weight: 600; color: var(--text-primary);">Juan Pérez</h4>
+            <p id="display-p-details" style="font-size: 0.875rem; color: var(--text-secondary);">45 años | EXP-123</p>
+            <div style="margin-top: 5px; padding: 4px 8px; background: #fef2f2; border: 1px dashed #ef4444; border-radius: 4px; display: inline-block;">
+              <span style="font-size: 0.75rem; color: #dc2626; font-weight: bold;">PIN DE ACCESO MÓVIL:</span>
+              <strong id="display-p-pin" style="color: #b91c1c; font-size: 1.1rem; letter-spacing: 2px; margin-left: 5px;">----</strong>
+            </div>
+          </div>
+        </div>
+        <button class="btn-save-record" id="btn-save-database">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          Guardar Medición Actual
+        </button>
+        <button class="btn-save-record" id="btn-trigger-alert" style="background: #dc2626; color: white; border: none; margin-top: 10px; padding: 0.8rem; font-weight: bold; text-transform: uppercase;">
+          🚨 Emitir Alerta
+        </button>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button class="btn-save-record" id="btn-share-whatsapp" style="background: #25D366; color: white; border: none; flex: 1;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+            WhatsApp
+          </button>
+          <button class="btn-save-record" id="btn-download-csv" style="background: #3b82f6; color: white; border: none; flex: 1;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Descargar CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="device-overview-card" id="card-pulsera">
+        <h3 class="section-title" style="margin-bottom: 1rem; font-size: 1rem; color: var(--text-secondary);">Pulsera Vinculada</h3>
+        
+        <div class="watch-graphic">
+          <div class="watch-screen-text">Heart Rate</div>
+          <div class="watch-screen-value heartbeat" id="watch-screen-value">--</div>
+        </div>
+
+        <div class="device-details-list">
+          <div class="device-detail-item">
+            <span class="detail-label">Device Name:</span>
+            <span class="detail-value">Polar Verity</span>
+          </div>
+          <div class="device-detail-item">
+            <span class="detail-label">MAC Address:</span>
+            <span class="detail-value text-muted" style="letter-spacing: 0.5px;">BLE:AUTO</span>
+          </div>
+          <div class="device-detail-item">
+            <span class="detail-label">Última Sinc:</span>
+            <span class="detail-value" id="val-lastsync">--:--:--</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="device-overview-card" id="card-oximetro" style="margin-top: 1.5rem;">
+        <h3 class="section-title" style="margin-bottom: 1rem; font-size: 1rem; color: var(--text-secondary);">Oxímetro Vinculado</h3>
+        
+
+        <div class="watch-graphic" style="border-color: #0ea5e9; background-color: #f0f9ff; box-shadow: inset 0 0 10px rgba(14, 165, 233, 0.2);">
+          <div class="watch-screen-text" style="color: #0284c7;">SpO2 %</div>
+          <div class="watch-screen-value" id="oximeter-screen-value" style="color: #0284c7;">--</div>
+        </div>
+
+        <div class="device-details-list">
+          <div class="device-detail-item">
+            <span class="detail-label">Modelo:</span>
+            <span class="detail-value">BerryMed BM1000C</span>
+          </div>
+          <div class="device-detail-item">
+            <span class="detail-label">Conexión:</span>
+            <span class="detail-value text-muted" id="oxi-connection-state" style="letter-spacing: 0.5px;">Pendiente</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="alerts-panel">
+        <h3 class="section-title" style="font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
+          Log de Alertas 
+          <span style="font-size: 0.75rem; font-weight: normal; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">En vivo</span>
+        </h3>
+        <div class="alerts-list" id="alerts-list"></div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <!-- Controles de Medición Activa -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-light); margin-bottom: 0.5rem;">
+        <div>
+          <h2 style="font-size: 1.125rem; font-weight: 600;">Panel de Telemetría Continua</h2>
+          <p style="font-size: 0.875rem; color: var(--text-secondary);">Métricas capturadas en tiempo real sin interrupción</p>
+        </div>
+        <button id="btn-trigger-scan" style="background-color: var(--accent-blue); color: white; border: none; padding: 0.6rem 1.25rem; border-radius: var(--radius-full); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px rgba(14, 165, 233, 0.2); transition: all 0.2s;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          Iniciar Monitoreo Continuo
+        </button>
+      </div>
+
+      <div class="vitals-grid">
+        
+        <!-- Tarjeta SpO2 -->
+        <div class="vital-card">
+          <div class="card-header">
+            <span class="card-title">Oxigenación (SpO₂)</span>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <button id="btn-edit-spo2" class="btn-bp-edit" title="Ingresar SpO2 manualmente">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Ingresar
+              </button>
+              <div class="icon-box icon-blue">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              </div>
+            </div>
+          </div>
+          <div class="card-value-container" id="spo2-display">
+            <div class="card-value" id="val-spo2">--</div>
+            <div class="card-unit">%</div>
+          </div>
+
+          <div class="bp-edit-form" id="spo2-edit-form">
+            <div class="bp-inputs-row">
+              <div class="bp-field">
+                <label for="inp-spo2">SpO2 %</label>
+                <input type="number" id="inp-spo2" min="50" max="100" placeholder="98">
+              </div>
+            </div>
+            <button id="btn-save-spo2" class="btn-bp-save">✓ Registrar</button>
+          </div>
+
+          <div class="card-status">
+            <span class="badge badge-normal" id="spo2-badge">Normal</span>
+          </div>
+        </div>
+
+        <!-- Tarjeta FC -->
+        <div class="vital-card">
+          <div class="card-header">
+            <span class="card-title">Ritmo Cardíaco</span>
+            <div class="icon-box icon-red heartbeat">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            </div>
+          </div>
+          <div class="card-value-container" style="color: var(--accent-red);">
+            <div class="card-value" id="val-hr">--</div>
+            <div class="card-unit">BPM</div>
+          </div>
+          <div class="card-status">
+            <span class="badge badge-warning">En vivo</span>
+          </div>
+        </div>
+
+        <!-- Tarjeta Presión Arterial — Edición Manual -->
+        <div class="vital-card" id="bp-card">
+          <div class="card-header">
+            <span class="card-title">Presión Arterial</span>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <button id="btn-edit-bp" class="btn-bp-edit" title="Ingresar presión manualmente">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Ingresar
+              </button>
+              <div class="icon-box icon-orange">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4l3 3"></path></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Valor mostrado -->
+          <div class="card-value-container" id="bp-display">
+            <div class="card-value" id="val-bp" style="font-size: 2.1rem;">--/--</div>
+            <div class="card-unit">mmHg</div>
+          </div>
+
+          <!-- Formulario inline de edición (oculto por defecto) -->
+          <div class="bp-edit-form" id="bp-edit-form">
+            <div class="bp-inputs-row">
+              <div class="bp-field">
+                <label for="inp-bp-sys">SIS</label>
+                <input type="number" id="inp-bp-sys" min="60" max="250" placeholder="120">
+              </div>
+              <div class="bp-slash">/</div>
+              <div class="bp-field">
+                <label for="inp-bp-dia">DIA</label>
+                <input type="number" id="inp-bp-dia" min="40" max="150" placeholder="80">
+              </div>
+            </div>
+            <button id="btn-save-bp" class="btn-bp-save">✓ Registrar</button>
+          </div>
+
+          <div class="card-status">
+            <span class="badge" id="bp-badge" style="background:#f1f5f9; color:var(--text-secondary);">Sin registro</span>
+            <span id="bp-classification" style="font-size:0.7rem; color:var(--text-secondary);"></span>
+          </div>
+        </div>
+
+        <!-- Tarjeta Pulso -->
+        <div class="vital-card">
+          <div class="card-header">
+            <span class="card-title">Pulso Sensorial</span>
+            <div class="icon-box icon-purple">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            </div>
+          </div>
+          <div class="card-value-container">
+            <div class="card-value" id="val-pulse">--</div>
+            <div class="card-unit">PR</div>
+          </div>
+          <div class="card-status">
+            <span class="badge" style="background:var(--bg-main)">Estable</span>
+          </div>
+        </div>
+
+        <!-- Tarjeta Temperatura -->
+        <div class="vital-card" id="temp-card">
+          <div class="card-header">
+            <span class="card-title">Temperatura</span>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <button id="btn-edit-temp" class="btn-bp-edit" title="Ingresar temperatura manualmente">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Ingresar
+              </button>
+              <div class="icon-box" style="background: #fef3c7; color: #f59e0b;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path></svg>
+              </div>
+            </div>
+          </div>
+          <div class="card-value-container">
+            <div class="card-value" id="val-temp" style="color: #f59e0b;">--</div>
+            <div class="card-unit">°C</div>
+          </div>
+
+          <div class="bp-edit-form" id="temp-edit-form">
+            <div class="bp-inputs-row">
+              <div class="bp-field">
+                <label for="inp-temp">°C</label>
+                <input type="number" step="0.1" id="inp-temp" min="30" max="45" placeholder="36.5">
+              </div>
+            </div>
+            <button id="btn-save-temp" class="btn-bp-save">✓ Registrar</button>
+          </div>
+
+          <div class="card-status">
+            <span class="badge" id="temp-badge" style="background:#f1f5f9; color:var(--text-secondary);">Sin registro</span>
+          </div>
+        </div>
+
+      </div> <!-- /vitals-grid -->
+
+      <!-- Sección de Registro de Infusiones y Eventos Clínicos -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+        
+        <!-- Formulario de Infusiones -->
+        <div class="charts-section" style="padding: 1.5rem;">
+          <h3 class="section-title" style="margin-bottom: 1rem; font-size: 1rem; color: var(--accent-blue);">💉 Registro de Infusión (Citotóxicos / Monoclonal)</h3>
+          <div style="margin-top: 0;">
+            <div style="margin-bottom: 0.75rem;">
+              <label for="inf-sal" style="display:block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Sal / Medicamento</label>
+              <input type="text" id="inf-sal" placeholder="Ej. Rituximab" style="width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid var(--border-light); border-radius: 8px; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-light)'">
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+              <div style="flex: 1;">
+                <label for="inf-gramos" style="display:block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Gramos / Dosis</label>
+                <input type="text" id="inf-gramos" placeholder="Ej. 500mg" style="width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid var(--border-light); border-radius: 8px; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-light)'">
+              </div>
+              <div style="flex: 1;">
+                <label for="inf-dilucion" style="display:block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Dilución</label>
+                <input type="text" id="inf-dilucion" placeholder="Ej. SF 250ml" style="width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid var(--border-light); border-radius: 8px; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-light)'">
+              </div>
+            </div>
+            <div style="margin-bottom: 1rem;">
+              <label for="inf-tiempo" style="display:block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Tiempo de Administración</label>
+              <input type="text" id="inf-tiempo" placeholder="Ej. 90 minutos" style="width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid var(--border-light); border-radius: 8px; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-light)'">
+            </div>
+            <button id="btn-save-infusion" style="width: 100%; padding: 0.65rem; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: inherit; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">✓ Registrar Infusión</button>
+          </div>
+        </div>
+
+        <!-- Formulario de Reacciones Adversas -->
+        <div class="charts-section" style="padding: 1.5rem;">
+          <h3 class="section-title" style="margin-bottom: 1rem; font-size: 1rem; color: var(--accent-red);">⚠️ Reacciones Adversas / Eventos</h3>
+          <div style="margin-top: 0;">
+            <div style="margin-bottom: 0.75rem;">
+              <label for="evt-esperado" style="display:block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Efecto secundario esperado</label>
+              <input type="text" id="evt-esperado" placeholder="Ej. Náuseas leves" style="width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid var(--border-light); border-radius: 8px; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--accent-red)'" onblur="this.style.borderColor='var(--border-light)'">
+            </div>
+            <div style="margin-bottom: 0.75rem;">
+              <label for="evt-adversa" style="display:block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Reacción adversa a medicamento</label>
+              <input type="text" id="evt-adversa" placeholder="Ej. Reacción alérgica cutánea" style="width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid var(--border-light); border-radius: 8px; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--accent-red)'" onblur="this.style.borderColor='var(--border-light)'">
+            </div>
+            <div style="margin-bottom: 1rem;">
+              <label for="evt-farmaco" style="display:block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Fármaco de contención / Traslado Hospital</label>
+              <input type="text" id="evt-farmaco" placeholder="Ej. Hidrocortisona 100mg IV" style="width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid var(--border-light); border-radius: 8px; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--accent-red)'" onblur="this.style.borderColor='var(--border-light)'">
+            </div>
+            <button id="btn-save-event" style="width: 100%; padding: 0.65rem; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: inherit; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">⚠ Registrar Evento</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Sección de Gráficas Múltiples -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+        
+        <div class="charts-section" style="padding: 1rem;">
+          <h3 style="font-size: 0.9rem; margin-bottom: 10px; color: var(--text-secondary);">Tendencia Frecuencia Cardíaca</h3>
+          <div style="height: 150px; width: 100%;">
+            <canvas id="chartHr"></canvas>
+          </div>
+        </div>
+
+        <div class="charts-section" style="padding: 1rem;">
+          <h3 style="font-size: 0.9rem; margin-bottom: 10px; color: var(--text-secondary);">Dinamia SpO₂ (Oxigenación)</h3>
+          <div style="height: 150px; width: 100%;">
+            <canvas id="chartSpo2"></canvas>
+          </div>
+        </div>
+
+        <div class="charts-section" style="padding: 1rem; position: relative;">
+          <h3 style="font-size: 0.9rem; margin-bottom: 10px; color: var(--text-secondary);">Presión Arterial (SYS/DIA)</h3>
+          <div style="height: 150px; width: 100%;">
+            <canvas id="chartBp"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Tabla de Historial (Log) -->
+      <div class="charts-section" style="margin-top: 1rem; padding: 1.5rem;">
+        <h2 class="section-title" style="margin-bottom: 1rem; font-size: 1rem;">Historial Clínico de la Sesión</h2>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 0.875rem;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-secondary);">
+                <th style="padding: 12px 8px;">Hora</th>
+                <th style="padding: 12px 8px;">Paciente</th>
+                <th style="padding: 12px 8px;">FC (bpm)</th>
+                <th style="padding: 12px 8px;">SpO₂ (%)</th>
+                <th style="padding: 12px 8px;">Presión (mmHg)</th>
+                <th style="padding: 12px 8px;">Temp (°C)</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <!-- Registros guardados aparecerán aquí -->
+            </tbody>
+          </table>
+          <p id="empty-history-msg" style="text-align: center; color: var(--text-tertiary); padding: 1rem; font-size: 0.875rem;">Aún no has guardado mediciones.</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
