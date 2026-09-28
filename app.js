@@ -796,38 +796,14 @@ async function connectOximeter() {
     return;
   }
   try {
-    btnConnectOxi.innerHTML = '🔍 Buscando BM1000C...';
-    addAlert('info', '🫀 Buscando BerryMed BM1000C. Si no aparece, usa "Mostrar todos"...');
+    btnConnectOxi.innerHTML = '🔍 Buscando...';
+    addAlert('info', '🫀 Buscando... Aparecerán todos los dispositivos cercanos.');
 
-    // Intentar primero con los filtros de nombre conocidos del BM1000C
-    let deviceFound = false;
-    try {
-      oxiDevice = await navigator.bluetooth.requestDevice({
-        filters: BERRY_NAME_PREFIXES.map(prefix => ({ namePrefix: prefix })),
-        optionalServices: OXI_SERVICES
-      });
-      deviceFound = true;
-    } catch (filterErr) {
-      // Si no se encontró con filtros, ofrecer selección manual sin filtro
-      if (filterErr.name === 'NotFoundError' || filterErr.name === 'NotSupportedError') {
-        const tryAll = confirm(
-          '⚠️ No se encontró el BerryMed con los filtros automáticos.\n\n' +
-          '¿Deseas ver TODOS los dispositivos Bluetooth cercanos?\n' +
-          '(Busca el BM1000C o un nombre similar en la lista)'
-        );
-        if (!tryAll) {
-          addAlert('warning', '⚠️ Búsqueda cancelada por el usuario.');
-          return;
-        }
-        oxiDevice = await navigator.bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: OXI_SERVICES
-        });
-        deviceFound = true;
-      } else {
-        throw filterErr;
-      }
-    }
+    // Pedimos TODOS los dispositivos para no fallar por culpa del nombre
+    oxiDevice = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: OXI_SERVICES
+    });
 
     addAlert('info', `📱 Dispositivo: "${oxiDevice.name || '(sin nombre)'}". Conectando GATT...`);
     oxiGatt = await oxiDevice.gatt.connect();
